@@ -4,7 +4,7 @@ FastAPI backend with a single Gemini agent (LangChain `create_agent`). `POST /ch
 
 Tools (`tools.py`): search restaurants by cuisine, get restaurant details, check reservation availability.
 
-Endpoints: `POST /chat` and `GET /health`. Run: `uvicorn main:app --reload`.
+Endpoints: `POST /chat` and `GET /health`; `GET /` redirects to the Swagger UI. Run `uvicorn main:app --reload`, then open http://localhost:8000/docs to try the agent (there is no separate frontend).
 
 Environment variables (set in `.env` locally or in the host's settings; never commit them): `GOOGLE_API_KEY`, `MODEL` (optional, default `google_genai:gemini-3.5-flash-lite`), `CORS_ORIGINS`, `LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`.
 
@@ -21,6 +21,7 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from langchain.agents import create_agent
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import AIMessage, ToolMessage
@@ -64,7 +65,14 @@ model = init_chat_model(
 
 agent = create_agent(model=model, tools=tools, system_prompt=system_prompt)
 
-app = FastAPI(title="Restaurant Assistant API")
+app = FastAPI(
+    title="Restaurant Assistant API",
+    description=(
+        "Chat with a Gemini restaurant agent. Open **POST /chat**, click "
+        "*Try it out*, and send a message. To continue a conversation, copy the "
+        "previous turns into `history`."
+    ),
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,19 +83,40 @@ app.add_middleware(
 
 
 class Message(BaseModel):
-    role: str
+    role: str = Field(description="`user` or `assistant`", examples=["user"])
     content: str
 
 
 class ChatRequest(BaseModel):
-    message: str
-    history: list[Message] = Field(default_factory=list)
+    message: str = Field(examples=["Is Spice Palace free on 2024-11-15 for 4 people?"])
+    history: list[Message] = Field(default_factory=list, description="Earlier turns, oldest first")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {"message": "Suggest some Italian restaurants", "history": []},
+                {
+                    "message": "Tell me more about the first one",
+                    "history": [
+                        {"role": "user", "content": "Suggest some Italian restaurants"},
+                        {"role": "assistant", "content": "Try Pizza Bella, Pasta Dreams or Roma Kitchen."},
+                    ],
+                },
+            ]
+        }
+    }
+
+
+class ToolCall(BaseModel):
+    name: str
+    args: dict
+    output: str = Field(description="Tool result; lists and dicts are JSON text")
 
 
 class ChatResponse(BaseModel):
     source: str = "Google Gemini"
     reply: str
-    tool_calls: list[dict]  # [{name, args, output}]
+    tool_calls: list[ToolCall]
 
 
 def _text(content) -> str:
@@ -130,7 +159,12 @@ async def run_turn(req: ChatRequest) -> ChatResponse:
     return ChatResponse(reply=_text(new[-1].content), tool_calls=_tool_calls(new))
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse("/docs")
+
+
+@app.post("/chat", response_model=ChatResponse, tags=["agent"], summary="Send a message to the agent")
 async def chat(req: ChatRequest):
     try:
         return await run_turn(req)
@@ -139,7 +173,7 @@ async def chat(req: ChatRequest):
         raise HTTPException(status_code=502, detail="The Gemini agent failed to respond.")
 
 
-@app.get("/health")
+@app.get("/health", tags=["status"])
 async def health():
     return {"status": "ok"}
 ```
