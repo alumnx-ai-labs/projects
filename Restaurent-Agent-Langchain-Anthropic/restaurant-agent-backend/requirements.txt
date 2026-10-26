@@ -1,6 +1,0 @@
-fastapi
-uvicorn[standard]
-langchain>=1.0
-langchain-anthropic
-pydantic
-python-dotenv
