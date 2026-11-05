@@ -1,0 +1,39 @@
+# Render Blueprint: deploys the backend (this repo) and the frontend (its own repo).
+# Render dashboard -> New -> Blueprint -> pick this repo. Values marked `sync: false`
+# are asked for during setup (API keys are never stored in git).
+services:
+  - type: web
+    name: restaurant-agent-backend
+    runtime: python
+    repo: https://github.com/manishpolishetty51-pixel/restaurent-agent-backend
+    branch: main
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false # the frontend URL, e.g. https://restaurant-agent-frontend.onrender.com
+      - key: LANGSMITH_TRACING
+        value: "false"
+      - key: LANGSMITH_API_KEY
+        sync: false
+      - key: LANGSMITH_PROJECT
+        value: restaurant-agent
+
+  - type: web
+    name: restaurant-agent-frontend
+    runtime: static
+    repo: https://github.com/manishpolishetty51-pixel/restaurent-agent-frontend
+    branch: main
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false # the backend URL, e.g. https://restaurant-agent-backend.onrender.com

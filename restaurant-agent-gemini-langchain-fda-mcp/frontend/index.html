@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Restaurant Agent</title>
+</head>
+<body>
+  <header>
+    <h1>🍽️ Restaurant Agent <span id="health" class="dot" title="Checking…"></span></h1>
+    <div class="settings">
+      <input id="apiUrl" title="Backend base URL">
+    </div>
+  </header>
+
+  <main id="chat"></main>
+
+  <form id="form">
+    <input id="input" placeholder="Ask about restaurants, details or reservations…" autocomplete="off" autofocus>
+    <button type="submit">Send</button>
+  </form>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

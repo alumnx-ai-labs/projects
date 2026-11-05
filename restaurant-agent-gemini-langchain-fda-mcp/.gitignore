@@ -1,0 +1,22 @@
+# Secrets: never commit real keys (.env.example files are fine)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+
+# Evaluation output
+backend/evals/results/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+langchain>=1.0
+langchain-core>=1.0
+langchain-google-genai
+pydantic
+langsmith
+python-dotenv
+typesafe-sdk
+httpx
+langchain-mcp-adapters
